@@ -329,6 +329,41 @@
     z-index: 11;
     border-bottom: 1px solid #d97706;
   }
+  /* Draft (future plan) edit banner */
+  .draft-banner {
+    background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 100%);
+    color: #fff;
+    padding: 10px 18px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 11;
+    border-bottom: 1px solid #7c3aed;
+  }
+  .draft-banner.show { display: flex; }
+  .draft-banner button {
+    padding: 5px 12px;
+    border: 0;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: inherit;
+  }
+  .draft-banner .draft-save { background: rgba(255,255,255,.25); margin-left: auto; }
+  .draft-banner .draft-save:hover { background: rgba(255,255,255,.4); }
+  .draft-banner .draft-discard { background: rgba(0,0,0,.2); }
+  .draft-banner .draft-discard:hover { background: rgba(0,0,0,.35); }
+  body.draft-mode .canvas-wrap {
+    background-color: #faf5ff;
+  }
+  body.draft-mode .node {
+    border-color: rgba(139, 92, 246, 0.15);
+  }
+  .app > .draft-banner { grid-row: 2; }
   .snapshot-banner.hide { display: none; }
   .snapshot-banner button {
     margin-left: auto;
@@ -422,6 +457,120 @@
   }
   .snap-card .snap-type.current { background: #dbeafe; color: #1e40af; }
   .snap-card .snap-type.future { background: #fce7f3; color: #9d174d; }
+
+  /* Dashboard view */
+  .dashboard-wrap {
+    overflow: auto;
+    padding: 18px 24px;
+    background: var(--bg);
+  }
+  .dashboard-wrap.hide { display: none; }
+  .app > .dashboard-wrap { grid-row: 3; }
+  .dashboard-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px;
+  }
+  .dashboard-head h2 { font-size: 16px; margin: 0; }
+  .dashboard-sub { color: var(--sub); font-size: 12px; }
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+  .dash-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .dash-card.span-2 { grid-column: span 2; }
+  .dash-card h3 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 700;
+    letter-spacing: .02em;
+  }
+  .dash-bignum {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--accent-dark);
+  }
+  .dash-bignum + .dash-sub {
+    color: var(--sub);
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .dash-bar {
+    display: grid;
+    grid-template-columns: 80px 1fr 40px;
+    gap: 8px;
+    align-items: center;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .dash-bar-label {
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dash-bar-track {
+    background: #f1f5f9;
+    border-radius: 999px;
+    height: 14px;
+    overflow: hidden;
+    position: relative;
+  }
+  .dash-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-dark) 100%);
+    border-radius: 999px;
+    transition: width .4s;
+  }
+  .dash-bar-fill.color-営業部     { background: linear-gradient(90deg, #06b6d4, #0e7490); }
+  .dash-bar-fill.color-伴走部     { background: linear-gradient(90deg, #8b5cf6, #6d28d9); }
+  .dash-bar-fill.color-新規事業部 { background: linear-gradient(90deg, #f59e0b, #b45309); }
+  .dash-bar-fill.color-管理部     { background: linear-gradient(90deg, #10b981, #047857); }
+  .dash-bar-fill.color-産休, .dash-bar-fill.color-育休 { background: linear-gradient(90deg, #f472b6, #db2777); }
+  .dash-bar-fill.color-休職中 { background: linear-gradient(90deg, #94a3b8, #475569); }
+  .dash-bar-count {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--sub);
+    font-weight: 600;
+  }
+  .dash-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 12px;
+  }
+  .dash-row:last-child { border-bottom: 0; }
+  .dash-row .who { color: var(--ink); font-weight: 600; }
+  .dash-row .what { color: var(--sub); font-size: 11px; }
+  .dash-mini {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-top: 4px;
+  }
+  .dash-mini-cell {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .dash-mini-num {
+    font-size: 20px; font-weight: 700; color: var(--accent-dark);
+  }
+  .dash-mini-label {
+    font-size: 10px; color: var(--sub); margin-top: 2px;
+  }
+  .dash-warn { color: #b45309; }
+  .dash-warn .dash-bignum { color: #b45309; }
+  .dash-good { color: #047857; }
+  .dash-good .dash-bignum { color: #047857; }
   .admin-pill {
     font-size: 11px;
     padding: 4px 10px;
@@ -830,6 +979,7 @@
     <div class="view-toggle">
       <button id="vChart" class="active">組織図</button>
       <button id="vList">リスト</button>
+      <button id="vDashboard">📊 ダッシュボード</button>
       <button id="vHistory">履歴</button>
     </div>
     <div class="toolbar" id="chartTools">
@@ -838,6 +988,7 @@
       <button class="btn" id="btnReset">レイアウト初期化</button>
       <button class="btn" id="btnPresent" title="プレゼンモード（Pキーで切替）">▶ プレゼン</button>
       <button class="btn" id="btnMyCard" title="自分のカードにジャンプ">👤 マイカード</button>
+      <button class="btn" id="btnDraft" title="未来案を作成（現在の組織図には影響しません）">🔮 未来案を作成</button>
     </div>
     <div class="toolbar" id="zoomTools">
       <button class="btn" id="btnZoomOut">－</button>
@@ -859,6 +1010,12 @@
     <span id="snapBannerText">📸 過去/未来の組織図を表示中</span>
     <button id="snapExit">現在の組織図に戻る</button>
   </div>
+  <div class="draft-banner" id="draftBanner">
+    <span>🔮 未来案を作成中</span>
+    <span style="opacity:.85;font-weight:400;">— 変更は現在の組織図に影響しません</span>
+    <button class="draft-save" id="draftSave">未来案として保存</button>
+    <button class="draft-discard" id="draftDiscard">破棄</button>
+  </div>
   <div class="canvas-wrap" id="canvasWrap">
     <div class="canvas" id="canvas">
       <svg id="lines"></svg>
@@ -876,6 +1033,14 @@
       <button class="btn" id="btnCompare">🔀 2案を比較</button>
     </div>
     <div class="snap-list" id="snapList"></div>
+  </div>
+
+  <div class="dashboard-wrap hide" id="dashboardWrap">
+    <div class="dashboard-head">
+      <h2>📊 組織ダッシュボード</h2>
+      <span class="dashboard-sub" id="dashSub"></span>
+    </div>
+    <div class="dashboard-grid" id="dashGrid"></div>
   </div>
 
   <div class="list-wrap hide" id="listWrap">
@@ -2692,23 +2857,262 @@ document.getElementById("csvImportInput").addEventListener("change", e => {
 
 // ===== Extended view switcher with history =====
 const historyWrap = document.getElementById("historyWrap");
+const dashboardWrap = document.getElementById("dashboardWrap");
 const vHistoryBtn = document.getElementById("vHistory");
+const vDashboardBtn = document.getElementById("vDashboard");
 const originalSwitchView = switchView;
 switchView = function(view) {
   vChartBtn.classList.toggle("active", view === "chart");
   vListBtn.classList.toggle("active", view === "list");
   vHistoryBtn.classList.toggle("active", view === "history");
+  vDashboardBtn.classList.toggle("active", view === "dashboard");
   canvasWrap2.classList.toggle("hide", view !== "chart");
   listWrap.classList.toggle("hide", view !== "list");
   historyWrap.classList.toggle("hide", view !== "history");
+  dashboardWrap.classList.toggle("hide", view !== "dashboard");
   chartTools.style.display = view === "chart" ? "" : "none";
   zoomTools.style.display = view === "chart" ? "" : "none";
   if (view === "list") renderList();
   if (view === "history") renderSnapList();
+  if (view === "dashboard") renderDashboard();
 };
 vChartBtn.addEventListener("click", () => switchView("chart"));
 vListBtn.addEventListener("click", () => switchView("list"));
 vHistoryBtn.addEventListener("click", () => switchView("history"));
+vDashboardBtn.addEventListener("click", () => switchView("dashboard"));
+
+// ===== Dashboard =====
+function countBy(arr, fn) {
+  const m = {};
+  for (const x of arr) {
+    const k = fn(x) || "（未設定）";
+    m[k] = (m[k] || 0) + 1;
+  }
+  return m;
+}
+
+function renderDashboard() {
+  const persons = Object.values(STATE.byId).filter(d => d.kind === "person");
+  const total = persons.length;
+  const active = persons.filter(p => !p.status || p.status === "active").length;
+  const onLeave = persons.filter(p => p.status && p.status !== "active");
+  const onLeaveCount = onLeave.length;
+  const sankyu = persons.filter(p => p.status === "産休").length;
+  const ikukyu = persons.filter(p => p.status === "育休").length;
+  const kyushoku = persons.filter(p => p.status === "休職中").length;
+
+  const byDivision = countBy(persons, p => p.division);
+  const bySection = countBy(persons, p => p.section);
+  const byJob = countBy(persons, p => p.jobType);
+  const byRole = countBy(persons, p => p.role);
+
+  // 入社月分布（最近12ヶ月）
+  const now = new Date();
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ label: `${d.getFullYear()}/${d.getMonth() + 1}`, count: 0 });
+  }
+  for (const p of persons) {
+    if (!p.joined) continue;
+    const m = p.joined.match(/(\d{4})年(\d{1,2})月/);
+    if (!m) continue;
+    const py = parseInt(m[1]), pm = parseInt(m[2]);
+    for (const bucket of months) {
+      const [by, bmStr] = bucket.label.split("/");
+      if (parseInt(by) === py && parseInt(bmStr) === pm) bucket.count++;
+    }
+  }
+
+  // 誕生月（今月／来月）
+  const thisMonth = now.getMonth() + 1;
+  const nextMonth = thisMonth === 12 ? 1 : thisMonth + 1;
+  const birthdayThis = persons.filter(p => {
+    if (!p.birth) return false;
+    const m = p.birth.match(/(\d{1,2})月/);
+    return m && parseInt(m[1]) === thisMonth;
+  });
+  const birthdayNext = persons.filter(p => {
+    if (!p.birth) return false;
+    const m = p.birth.match(/(\d{1,2})月/);
+    return m && parseInt(m[1]) === nextMonth;
+  });
+
+  // スパン・オブ・コントロール（リーダー以上1人あたりの直属配下数）
+  const managers = persons.filter(p => rankOfPerson(p.role) <= 6);
+  const spans = managers.map(m => {
+    const directReports = persons.filter(p => p.parent === m.id).length;
+    return { manager: m, count: directReports };
+  }).sort((a, b) => b.count - a.count);
+  const avgSpan = managers.length ? (
+    spans.reduce((s, x) => s + x.count, 0) / managers.length
+  ).toFixed(1) : "0";
+  const overloaded = spans.filter(s => s.count >= 8);
+  const noReports = spans.filter(s => s.count === 0);
+
+  // 平均在籍月数
+  const today = now;
+  const tenures = persons
+    .map(p => {
+      if (!p.joined) return null;
+      const m = p.joined.match(/(\d{4})年(\d{1,2})月/);
+      if (!m) return null;
+      const start = new Date(parseInt(m[1]), parseInt(m[2]) - 1, 1);
+      return Math.max(0, (today - start) / (1000 * 60 * 60 * 24 * 30));
+    })
+    .filter(x => x !== null);
+  const avgTenureM = tenures.length ? Math.round(tenures.reduce((a, b) => a + b, 0) / tenures.length) : 0;
+  const tenureY = Math.floor(avgTenureM / 12);
+  const tenureMon = avgTenureM % 12;
+
+  // 未来予定スナップ数
+  const futureSnaps = getSnapshots().filter(s => s.type === "future").length;
+  const currentSnaps = getSnapshots().filter(s => s.type !== "future").length;
+
+  document.getElementById("dashSub").textContent =
+    `総勢 ${total} 名（在籍 ${active} / 休暇等 ${onLeaveCount}） ・ 更新: ${now.toLocaleString("ja-JP")}`;
+
+  const bar = (label, val, max, colorKey) => `
+    <div class="dash-bar">
+      <div class="dash-bar-label">${label}</div>
+      <div class="dash-bar-track"><div class="dash-bar-fill ${colorKey ? "color-" + colorKey : ""}" style="width:${max ? (val / max * 100) : 0}%"></div></div>
+      <div class="dash-bar-count">${val}</div>
+    </div>
+  `;
+  const maxDiv = Math.max(1, ...Object.values(byDivision));
+  const maxSec = Math.max(1, ...Object.values(bySection));
+  const maxJob = Math.max(1, ...Object.values(byJob));
+  const maxRole = Math.max(1, ...Object.values(byRole));
+  const maxMon = Math.max(1, ...months.map(m => m.count));
+
+  const cards = [];
+
+  // KPI cards
+  cards.push(`
+    <div class="dash-card">
+      <h3>全体サマリー</h3>
+      <div class="dash-bignum">${total}</div>
+      <div class="dash-sub">名・在籍中</div>
+      <div class="dash-mini">
+        <div class="dash-mini-cell"><div class="dash-mini-num">${active}</div><div class="dash-mini-label">在籍中</div></div>
+        <div class="dash-mini-cell"><div class="dash-mini-num">${onLeaveCount}</div><div class="dash-mini-label">休暇等</div></div>
+      </div>
+    </div>
+  `);
+
+  cards.push(`
+    <div class="dash-card">
+      <h3>ステータス</h3>
+      <div class="dash-mini">
+        <div class="dash-mini-cell"><div class="dash-mini-num" style="color:#db2777">${sankyu}</div><div class="dash-mini-label">産休</div></div>
+        <div class="dash-mini-cell"><div class="dash-mini-num" style="color:#db2777">${ikukyu}</div><div class="dash-mini-label">育休</div></div>
+        <div class="dash-mini-cell" style="grid-column:span 2"><div class="dash-mini-num" style="color:#475569">${kyushoku}</div><div class="dash-mini-label">休職中</div></div>
+      </div>
+      ${onLeave.length ? `<div style="margin-top:10px;font-size:11px;color:var(--sub);">対象：${onLeave.map(p => p.name).join("、")}</div>` : ""}
+    </div>
+  `);
+
+  cards.push(`
+    <div class="dash-card ${avgTenureM < 12 ? "dash-warn" : "dash-good"}">
+      <h3>平均在籍期間</h3>
+      <div class="dash-bignum">${tenureY}<span style="font-size:18px;">年</span>${tenureMon}<span style="font-size:18px;">ヶ月</span></div>
+      <div class="dash-sub">在籍中 ${tenures.length} 名の平均</div>
+    </div>
+  `);
+
+  cards.push(`
+    <div class="dash-card">
+      <h3>マネジメント体制</h3>
+      <div class="dash-bignum">${avgSpan}</div>
+      <div class="dash-sub">人 / 管理職1名あたりの直属配下（平均）</div>
+      ${overloaded.length ? `<div style="margin-top:10px;font-size:11px;color:#b45309;">⚠ 配下8名以上：${overloaded.map(s => s.manager.name).join("、")}</div>` : ""}
+      ${noReports.length ? `<div style="margin-top:6px;font-size:11px;color:var(--sub);">配下なし：${noReports.map(s => s.manager.name).join("、")}</div>` : ""}
+    </div>
+  `);
+
+  // 部門別人数
+  cards.push(`
+    <div class="dash-card">
+      <h3>部門別人数</h3>
+      ${DIVISION_OPTIONS.map(div => bar(div, byDivision[div] || 0, maxDiv, div)).join("")}
+      ${byDivision["（未設定）"] ? bar("（未設定）", byDivision["（未設定）"], maxDiv) : ""}
+    </div>
+  `);
+
+  // 課別人数
+  cards.push(`
+    <div class="dash-card">
+      <h3>課別人数</h3>
+      ${SECTION_OPTIONS.map(sec => bar(sec, bySection[sec] || 0, maxSec)).join("")}
+      ${bySection["（未設定）"] ? bar("（未設定）", bySection["（未設定）"], maxSec) : ""}
+    </div>
+  `);
+
+  // 職種別人数
+  cards.push(`
+    <div class="dash-card">
+      <h3>職種別人数</h3>
+      ${JOB_OPTIONS.map(j => bar(j, byJob[j] || 0, maxJob)).join("")}
+      ${byJob["（未設定）"] ? bar("（未設定）", byJob["（未設定）"], maxJob) : ""}
+    </div>
+  `);
+
+  // 役職別
+  cards.push(`
+    <div class="dash-card">
+      <h3>役職別人数</h3>
+      ${ROLE_OPTIONS.map(r => bar(r, byRole[r] || 0, maxRole)).join("")}
+    </div>
+  `);
+
+  // 直近12ヶ月入社推移
+  cards.push(`
+    <div class="dash-card span-2">
+      <h3>直近12ヶ月の入社推移</h3>
+      ${months.map(m => bar(m.label, m.count, maxMon)).join("")}
+    </div>
+  `);
+
+  // 誕生月
+  cards.push(`
+    <div class="dash-card">
+      <h3>🎂 今月・来月の誕生月メンバー</h3>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:6px;">今月 (${thisMonth}月)</div>
+      ${birthdayThis.length === 0 ? '<div class="dash-row"><span class="who" style="color:var(--sub);">該当者なし</span></div>' :
+        birthdayThis.map(p => `<div class="dash-row"><span class="who">${p.name}</span><span class="what">${p.role || ""}</span></div>`).join("")}
+      <div style="font-size:11px;color:var(--sub);margin:10px 0 6px;">来月 (${nextMonth}月)</div>
+      ${birthdayNext.length === 0 ? '<div class="dash-row"><span class="who" style="color:var(--sub);">該当者なし</span></div>' :
+        birthdayNext.map(p => `<div class="dash-row"><span class="who">${p.name}</span><span class="what">${p.role || ""}</span></div>`).join("")}
+      <div style="font-size:10px;color:var(--sub);margin-top:8px;">※ 生年欄に「○月」が含まれる人のみ抽出</div>
+    </div>
+  `);
+
+  // マネージャー配下数ランキング
+  cards.push(`
+    <div class="dash-card">
+      <h3>👥 マネージャー配下数</h3>
+      ${spans.slice(0, 8).map(s => `
+        <div class="dash-row">
+          <span class="who">${s.manager.name}</span>
+          <span class="what">${s.manager.role} ・ 配下 ${s.count}名</span>
+        </div>
+      `).join("")}
+    </div>
+  `);
+
+  // 履歴サマリー
+  cards.push(`
+    <div class="dash-card">
+      <h3>📸 組織図の記録</h3>
+      <div class="dash-mini">
+        <div class="dash-mini-cell"><div class="dash-mini-num">${currentSnaps}</div><div class="dash-mini-label">現在/過去</div></div>
+        <div class="dash-mini-cell"><div class="dash-mini-num" style="color:#db2777">${futureSnaps}</div><div class="dash-mini-label">未来予定</div></div>
+      </div>
+    </div>
+  `);
+
+  document.getElementById("dashGrid").innerHTML = cards.join("");
+}
 
 // ===== Comparison =====
 function buildSnapshotMembers(stateBlock) {
@@ -2990,6 +3394,101 @@ document.getElementById("mySave").addEventListener("click", () => {
   focusOnMyCard();
 });
 myCardModalBg.addEventListener("click", e => { if (e.target === myCardModalBg) myCardModalBg.classList.remove("show"); });
+
+// ===== 未来案ドラフトモード =====
+// 現在の組織図はそのままに、別データセットで未来案を編集できる
+let draftSnapshot = null; // バックアップした現在状態
+let isDraftMode = false;
+
+function startDraft() {
+  if (isDraftMode) return;
+  // Save the current state to restore later
+  draftSnapshot = JSON.parse(JSON.stringify(captureCurrentState()));
+  isDraftMode = true;
+  document.body.classList.add("draft-mode");
+  document.getElementById("draftBanner").classList.add("show");
+  // Suppress persist() while in draft mode
+  origPersist = persist;
+  persist = function() {}; // no-op while drafting
+  // Visual: refresh chart
+  render();
+  alert("🔮 未来案モードに入りました。\n変更内容は「保存」を押すまで現在の組織図に反映されません。");
+}
+
+let origPersist = null;
+
+function exitDraft(save) {
+  if (!isDraftMode) return;
+  if (save) {
+    // Save as future snapshot
+    const title = prompt("未来案のタイトルを入力してください", `${new Date().toLocaleDateString("ja-JP")} 未来案`);
+    if (title === null) return; // canceled
+    const desc = prompt("メモ（任意）", "") || "";
+    const snapshots = getSnapshots();
+    snapshots.unshift({
+      id: "snap_" + Date.now().toString(36),
+      title: title.trim() || `未来案 ${new Date().toLocaleDateString("ja-JP")}`,
+      type: "future",
+      desc: desc.trim(),
+      timestamp: new Date().toISOString(),
+      state: captureCurrentState(),
+    });
+    setSnapshots(snapshots);
+    alert(`「${title}」として履歴に保存しました。`);
+  }
+  // Restore current state from draftSnapshot
+  if (draftSnapshot) {
+    // Rebuild from DATA then apply draftSnapshot
+    const { byId, roots } = buildTree();
+    STATE.byId = byId; STATE.roots = roots;
+    const data = draftSnapshot.data || {};
+    const newMembers = draftSnapshot.newMembers || [];
+    const deleted = draftSnapshot.deleted || [];
+    for (const idK of Object.keys(data)) {
+      if (!STATE.byId[idK]) continue;
+      const s = data[idK];
+      if (s.name !== undefined) STATE.byId[idK].name = s.name;
+      if (s.role !== undefined) STATE.byId[idK].role = s.role;
+      if (s.dept !== undefined) STATE.byId[idK].dept = s.dept;
+      if (s.division !== undefined) STATE.byId[idK].division = s.division;
+      if (s.section !== undefined) STATE.byId[idK].section = s.section;
+      if (s.jobType !== undefined) STATE.byId[idK].jobType = s.jobType;
+      if (s.parent !== undefined) STATE.byId[idK].parent = s.parent;
+      if (s.status) STATE.byId[idK].status = s.status;
+      if (s.faceSrc !== undefined) STATE.byId[idK].faceSrc = s.faceSrc;
+      if (s.joined !== undefined) STATE.byId[idK].joined = s.joined;
+      if (s.birth !== undefined) STATE.byId[idK].birth = s.birth;
+      if (typeof s.x === "number") STATE.byId[idK].x = s.x;
+      if (typeof s.y === "number") STATE.byId[idK].y = s.y;
+    }
+    for (const m of newMembers) STATE.byId[m.id] = { ...m, kind: m.kind || "person", children: [] };
+    for (const idD of deleted) delete STATE.byId[idD];
+    rebuildTree();
+    autoLayout(STATE.roots);
+  }
+  // Restore persist
+  if (origPersist) persist = origPersist;
+  isDraftMode = false;
+  draftSnapshot = null;
+  document.body.classList.remove("draft-mode");
+  document.getElementById("draftBanner").classList.remove("show");
+  render();
+  fitToView();
+}
+
+document.getElementById("btnDraft").addEventListener("click", () => {
+  if (isDraftMode) {
+    alert("既に未来案モード中です。保存または破棄してください。");
+    return;
+  }
+  if (!confirm("🔮 未来案の作成を開始します。\n\n現在の組織図をベースに編集できますが、\n「未来案として保存」を押すまで現在の組織図には反映されません。\n\n続行しますか？")) return;
+  startDraft();
+});
+document.getElementById("draftSave").addEventListener("click", () => exitDraft(true));
+document.getElementById("draftDiscard").addEventListener("click", () => {
+  if (!confirm("未来案の変更を破棄して元に戻します。よろしいですか？")) return;
+  exitDraft(false);
+});
 
 // ===== Presentation mode =====
 function togglePresent() {
