@@ -861,6 +861,24 @@
     border: 1px dashed var(--line);
     pointer-events: none;
   }
+  .save-toast {
+    position: fixed;
+    bottom: 16px; left: 50%;
+    transform: translate(-50%, 8px);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+    z-index: 3000;
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  }
+  .save-toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .save-toast.ok { background: #065f46; }
+  .save-toast.err { background: #b91c1c; }
   .hint {
     position: absolute;
     bottom: 12px; left: 12px;
@@ -1051,7 +1069,7 @@
         📥 CSV読込
         <input type="file" id="csvImportInput" accept=".csv,text/csv" style="display:none;" />
       </label>
-      <select class="filter" id="lfDept"><option value="">すべての部署</option></select>
+      <select class="filter" id="lfDept"><option value="">すべての部門</option></select>
       <select class="filter" id="lfStatus">
         <option value="">すべてのステータス</option>
         <option value="active">在籍中</option>
@@ -1284,7 +1302,7 @@ const DATA = [
     { p:4, x:2440, y:700 }),
   N("ikeshita", "池下豪史",   "HP事業部",         "デジマケ", "2026年3月入社", "1980年生まれ", "shono", null),
 
-  N("kameda",   "亀田知佳", "ライター リーダー", "ライター", "2023年10月", "1991年生まれ", "dept_writer",
+  N("kameda",   "亀田知佳", "ライター リーダー", "ライター", "2023年10月入社", "1991年生まれ", "dept_writer",
     { p:1, x:1050, y:1365 }),
   N("sekine",   "関根由香里", "メンバー", "ライター", "2021年12月入社", "1991年生まれ", "kameda",
     { p:5, x:1140, y:320 }),
@@ -1636,6 +1654,8 @@ function attachDrag(el, d) {
     if (e.target.closest(".edit-btn")) return;
     // Don't drag in readonly mode
     if (document.body.classList.contains("readonly")) return;
+    // スナップショット閲覧中はドラッグ禁止（閲覧専用）
+    if (viewingSnapshotId) return;
     e.stopPropagation();
     dragging = true;
     el.classList.add("dragging");
@@ -1654,7 +1674,11 @@ function attachDrag(el, d) {
     drawLines();
     updateBounds();
   });
-  el.addEventListener("pointerup", () => { dragging = false; el.classList.remove("dragging"); });
+  el.addEventListener("pointerup", () => {
+    if (dragging && (d.x !== startLeft || d.y !== startTop)) persist(); // 実際に動かした時だけ保存
+    dragging = false;
+    el.classList.remove("dragging");
+  });
   el.addEventListener("pointercancel", () => { dragging = false; el.classList.remove("dragging"); });
 }
 
@@ -1750,7 +1774,7 @@ qEl.addEventListener("input", () => {
   }
   STATE.nodeEls.forEach((el, id) => {
     const d = STATE.byId[id];
-    const hay = [d.name, d.role, d.dept, d.joined, d.birth].filter(Boolean).join(" ").toLowerCase();
+    const hay = [d.name, d.role, d.dept, d.division, d.section, d.jobType, d.joined, d.birth].filter(Boolean).join(" ").toLowerCase();
     if (hay.includes(q)) { el.classList.add("match"); el.classList.remove("dim"); }
     else { el.classList.add("dim"); el.classList.remove("match"); }
   });
@@ -1898,7 +1922,17 @@ function fillSelect(sel, options, current) {
   }
 }
 
+// スナップショット閲覧中の編集をロジックで遮断（CSSで隠すだけでは不十分）
+function blockIfSnapshotView() {
+  if (viewingSnapshotId) {
+    alert("スナップショット閲覧中は編集できません。\n「現在の組織図に戻る」を押してから編集してください。");
+    return true;
+  }
+  return false;
+}
+
 function openAddMember() {
+  if (blockIfSnapshotView()) return;
   isAddMode = true;
   editingId = null;
   pendingFaceSrc = null;
@@ -1947,6 +1981,7 @@ function openAddMember() {
 }
 
 function openEditor(id) {
+  if (blockIfSnapshotView()) return;
   isAddMode = false;
   pendingFaceSrc = null;
   pendingFaceReset = false;
@@ -2093,16 +2128,35 @@ mDelete.addEventListener("click", () => {
   if (!listWrap.classList.contains("hide")) renderList();
 });
 
-// Handle photo upload
+// Handle photo upload — localStorage 容量(約5MB)を写真1枚で食い潰さないよう
+// 512px JPEG に縮小してから data URI 化する
+function compressImageFile(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image load failed")); };
+    img.src = url;
+  });
+}
 mPhotoInput.addEventListener("change", e => {
   const file = e.target.files[0];
   if (!file) { pendingFaceSrc = null; return; }
-  const reader = new FileReader();
-  reader.onload = ev => {
-    pendingFaceSrc = ev.target.result;
-    pendingFaceReset = false;
-  };
-  reader.readAsDataURL(file);
+  compressImageFile(file, 512, 0.85)
+    .then(dataUrl => {
+      pendingFaceSrc = dataUrl;
+      pendingFaceReset = false;
+    })
+    .catch(() => alert("画像の読み込みに失敗しました。別の画像でお試しください。"));
 });
 
 // "Reset to default photo" button
@@ -2154,6 +2208,10 @@ document.getElementById("canvas").addEventListener("click", e => {
 const STORAGE_KEY = "orgnavi_state_v1";
 
 function persist() {
+  // ガード: 編集権限がない／スナップショット閲覧中は保存しない。
+  // （閲覧中の保存は「過去データで現在を上書き」する事故になるため）
+  if (!isAdmin) return;
+  if (viewingSnapshotId) return;
   const data = {};
   const newMembers = [];
   // Track original DATA IDs that have been removed
@@ -2182,7 +2240,30 @@ function persist() {
       };
     }
   }
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ data, newMembers, deleted })); } catch {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ data, newMembers, deleted }));
+    showSaveStatus(true);
+  } catch (e) {
+    const reason = (e && (e.name === "QuotaExceededError" || e.code === 22))
+      ? "保存容量の上限を超えています（写真の入れすぎ等）"
+      : ((e && e.message) || "不明なエラー");
+    showSaveStatus(false, reason);
+  }
+}
+
+// 保存結果トースト: 成功は短く、失敗は長めに表示して握りつぶさない
+let saveToastTimer = null;
+function showSaveStatus(ok, msg) {
+  let el = document.getElementById("saveToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "saveToast";
+    document.body.appendChild(el);
+  }
+  el.className = "save-toast show " + (ok ? "ok" : "err");
+  el.textContent = ok ? "✓ 保存しました（このブラウザ内）" : "⚠ 保存に失敗しました：" + msg;
+  clearTimeout(saveToastTimer);
+  saveToastTimer = setTimeout(() => el.classList.remove("show"), ok ? 1800 : 8000);
 }
 
 function loadPersisted() {
@@ -2221,12 +2302,9 @@ function loadPersisted() {
   } catch { return false; }
 }
 
-// Also persist when user drags cards
-const origDrag = attachDrag;
-// (We don't need to re-wire — drag handlers update d.x/d.y in place. Add a hook below.)
-
-// Hook into pointer up to persist after drag
-canvas.addEventListener("pointerup", () => persist(), true);
+// ドラッグ後の保存は attachDrag 内で「実際に移動した時のみ」行う。
+// （以前はここで canvas の pointerup 全件に persist を掛けており、
+//   ただのクリックやスナップショット閲覧中の操作でも全データが上書き保存されていた）
 
 // Reset to original layout (clears localStorage). Use capture + stopImmediatePropagation
 // to override the earlier "click → init" handler when user confirms.
@@ -2238,10 +2316,13 @@ document.getElementById("btnReset").addEventListener("click", (e) => {
 }, true);
 
 // Override init to support persistence
+// 閲覧者(非管理者)は localStorage を読まず、常にデプロイ済みの最新データを表示する。
+// （過去バグで閲覧者の localStorage に古いデータが保存されており、
+//   index.html 側のデータ修正がその古い保存に隠されて「直っていない」ように見えていた）
 function initWithPersist() {
   const { byId, roots } = buildTree();
   STATE.byId = byId; STATE.roots = roots;
-  const restored = loadPersisted();
+  const restored = isAdmin ? loadPersisted() : false;
   if (!restored) {
     autoLayout(roots);
   }
@@ -2282,17 +2363,18 @@ function switchView(view) {
   }
 }
 
-vChartBtn.addEventListener("click", () => switchView("chart"));
-vListBtn.addEventListener("click", () => switchView("list"));
+// 注: chart/list のクリックリスナーは下部の拡張版 switchView 定義箇所
+// （history/dashboard 対応版）でまとめて登録する。ここで登録すると二重発火するため削除済み。
 
 function buildDeptFilterOptions() {
-  const depts = new Set();
+  // フィルタは表に出ている「部門(division)」で絞る（旧 dept ではなく）
+  const divs = new Set();
   for (const d of Object.values(STATE.byId)) {
-    if (d.kind === "person" && d.dept) depts.add(d.dept);
+    if (d.kind === "person" && d.division) divs.add(d.division);
   }
   const current = lfDept.value;
-  lfDept.innerHTML = '<option value="">すべての部署</option>' +
-    [...depts].sort().map(d => `<option value="${d}">${d}</option>`).join("");
+  lfDept.innerHTML = '<option value="">すべての部門</option>' +
+    [...divs].sort().map(d => `<option value="${d}">${d}</option>`).join("");
   lfDept.value = current;
 }
 
@@ -2319,6 +2401,9 @@ function compareMembers(a, b, key, dir) {
   if (key === "name") { av = a.name; bv = b.name; }
   else if (key === "role") { av = a.role || ""; bv = b.role || ""; }
   else if (key === "dept") { av = a.dept || ""; bv = b.dept || ""; }
+  else if (key === "division") { av = a.division || ""; bv = b.division || ""; }
+  else if (key === "section") { av = a.section || ""; bv = b.section || ""; }
+  else if (key === "jobType") { av = a.jobType || ""; bv = b.jobType || ""; }
   else if (key === "parent") { av = parentLabel(a.parent); bv = parentLabel(b.parent); }
   else if (key === "status") { av = a.status || "active"; bv = b.status || "active"; }
   else if (key === "joined") { av = a.joined || ""; bv = b.joined || ""; }
@@ -2338,10 +2423,10 @@ function renderList() {
   const fs = lfStatus.value;
   let members = Object.values(STATE.byId).filter(d => d.kind === "person");
   members = members.filter(d => {
-    if (fd && d.dept !== fd) return false;
+    if (fd && (d.division || "") !== fd) return false;
     if (fs && (d.status || "active") !== fs) return false;
     if (!q) return true;
-    const hay = [d.name, d.role, d.dept, d.joined, d.birth].filter(Boolean).join(" ").toLowerCase();
+    const hay = [d.name, d.role, d.dept, d.division, d.section, d.jobType, d.joined, d.birth].filter(Boolean).join(" ").toLowerCase();
     return hay.includes(q);
   });
   members.sort((a, b) => compareMembers(a, b, listSort.key, listSort.dir));
@@ -2424,6 +2509,7 @@ function renderList() {
     // Live edit handlers
     tr.querySelectorAll("select.cell-select").forEach(sel => {
       sel.addEventListener("change", () => {
+        if (blockIfSnapshotView()) { renderList(); return; }
         const field = sel.dataset.field;
         if (field === "parent") m.parent = sel.value || null;
         else if (field === "status") m.status = sel.value;
@@ -2439,6 +2525,7 @@ function renderList() {
     // Name input
     const nameIn = tr.querySelector('input[data-field="name"]');
     nameIn.addEventListener("change", () => {
+      if (blockIfSnapshotView()) { nameIn.value = m.name; return; }
       const v = nameIn.value.trim();
       if (!v) { nameIn.value = m.name; return; }
       m.name = v;
@@ -2448,6 +2535,7 @@ function renderList() {
     // Delete button
     const delBtn = tr.querySelector(".row-delete");
     delBtn.addEventListener("click", () => {
+      if (blockIfSnapshotView()) return;
       if (!confirm(`「${m.name}」さんを削除しますか？\n配下メンバーは ${m.parent ? "上司に再接続" : "ルートに移動"} されます。`)) return;
       const newParent = m.parent || null;
       for (const n of Object.values(STATE.byId)) {
@@ -2478,7 +2566,6 @@ document.querySelectorAll("#memberTable th[data-sort]").forEach(th => {
 lfDept.addEventListener("change", renderList);
 lfStatus.addEventListener("change", renderList);
 // Also refresh list when search changes (search input already triggers chart dim)
-const oldQInput = qEl.oninput;
 qEl.addEventListener("input", () => {
   if (!listWrap.classList.contains("hide")) renderList();
 });
@@ -2526,7 +2613,10 @@ function setSnapshots(list) {
   localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(list));
 }
 
-function captureCurrentState() {
+// includeFaces=false（既定）: スナップショットには写真data URIを複製しない。
+// （以前は記録のたびに全アップロード写真が複製され localStorage 容量が爆発していた）
+// ドラフトのバックアップ用途のみ includeFaces=true で写真も保全する。
+function captureCurrentState(includeFaces = false) {
   const data = {};
   const newMembers = [];
   const originalIds = new Set(DATA.map(d => d.id));
@@ -2537,15 +2627,20 @@ function captureCurrentState() {
     if (id.startsWith("new_")) {
       newMembers.push({
         id, name: n.name, role: n.role, dept: n.dept,
+        division: n.division, section: n.section, jobType: n.jobType,
         joined: n.joined, birth: n.birth, parent: n.parent,
-        status: n.status, faceSrc: n.faceSrc, kind: n.kind,
+        status: n.status, kind: n.kind,
+        faceSrc: includeFaces ? n.faceSrc : undefined,
         x: n.x, y: n.y,
       });
     } else {
       data[id] = {
-        name: n.name, role: n.role, dept: n.dept, parent: n.parent,
+        name: n.name, role: n.role, dept: n.dept,
+        division: n.division, section: n.section, jobType: n.jobType,
+        parent: n.parent,
         status: n.status, x: n.x, y: n.y,
-        faceSrc: n.faceSrc, joined: n.joined, birth: n.birth,
+        faceSrc: includeFaces ? n.faceSrc : undefined,
+        joined: n.joined, birth: n.birth,
       };
     }
   }
@@ -2589,6 +2684,9 @@ function viewSnapshot(id) {
     if (s.name !== undefined) STATE.byId[idK].name = s.name;
     if (s.role !== undefined) STATE.byId[idK].role = s.role;
     if (s.dept !== undefined) STATE.byId[idK].dept = s.dept;
+    if (s.division !== undefined) STATE.byId[idK].division = s.division;
+    if (s.section !== undefined) STATE.byId[idK].section = s.section;
+    if (s.jobType !== undefined) STATE.byId[idK].jobType = s.jobType;
     if (s.parent !== undefined) STATE.byId[idK].parent = s.parent;
     if (s.status) STATE.byId[idK].status = s.status;
     if (s.faceSrc !== undefined) STATE.byId[idK].faceSrc = s.faceSrc;
@@ -2615,11 +2713,12 @@ function exitSnapshotView() {
   viewingSnapshotId = null;
   document.body.classList.remove("snapshot-view");
   document.getElementById("snapBanner").classList.add("hide");
-  // Reload current state
+  // Reload current state（閲覧者はデプロイ済みデータをそのまま表示）
+  // 復元に成功した場合は autoLayout しない（保存済みの手動配置を潰さない）
   const { byId, roots } = buildTree();
   STATE.byId = byId; STATE.roots = roots;
-  loadPersisted();
-  autoLayout(STATE.roots);
+  const restored = isAdmin ? loadPersisted() : false;
+  if (!restored) autoLayout(STATE.roots);
   render();
   fitToView();
 }
@@ -2703,6 +2802,7 @@ function renderSnapList() {
 const snapModalBg = document.getElementById("snapModalBg");
 document.getElementById("btnSnapTake").addEventListener("click", () => {
   if (!isAdmin) { alert("管理者ログインが必要です"); return; }
+  if (viewingSnapshotId) { alert("スナップショット閲覧中は記録できません。\n「現在の組織図に戻る」を押してから記録してください。"); return; }
   document.getElementById("snapTitle").value = "";
   document.getElementById("snapType").value = "current";
   document.getElementById("snapDesc").value = "";
@@ -2798,9 +2898,10 @@ function importCSV(text) {
     if (existing) {
       existing.name = name;
       existing.role = get("role") || existing.role;
-      existing.division = get("division") || "";
-      existing.section = get("section") || "";
-      existing.jobType = get("jobType") || "";
+      // 列がCSVに存在する時だけ更新（列ごと無いCSVで部門/課/職種を消さない）
+      if (idx.division >= 0) existing.division = get("division");
+      if (idx.section >= 0) existing.section = get("section");
+      if (idx.jobType >= 0) existing.jobType = get("jobType");
       existing.status = get("status") || existing.status || "active";
       existing.joined = get("joined") || existing.joined || "";
       existing.birth = get("birth") || existing.birth || "";
@@ -2821,18 +2922,21 @@ function importCSV(text) {
     }
   }
   // 2nd pass: link parents by name
-  for (let i = 1; i < rows.length; i++) {
-    const r = rows[i];
-    const get = key => idx[key] >= 0 ? (r[idx[key]] || "").trim() : "";
-    const name = get("name");
-    const parentName = get("parent_name");
-    const meId = nameToId[name];
-    if (!meId) continue;
-    if (parentName) {
-      const pid = nameToId[parentName];
-      if (pid) STATE.byId[meId].parent = pid;
-    } else {
-      STATE.byId[meId].parent = null;
+  // parent_name 列が無いCSVでは所属長を一切触らない（以前は全員の所属長がnullに消えていた）
+  if (idx.parent_name >= 0) {
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      const get = key => idx[key] >= 0 ? (r[idx[key]] || "").trim() : "";
+      const name = get("name");
+      const parentName = get("parent_name");
+      const meId = nameToId[name];
+      if (!meId) continue;
+      if (parentName) {
+        const pid = nameToId[parentName];
+        if (pid) STATE.byId[meId].parent = pid;
+      } else {
+        STATE.byId[meId].parent = null;
+      }
     }
   }
   rebuildTree();
@@ -2845,6 +2949,7 @@ function importCSV(text) {
 
 document.getElementById("btnCsvExport").addEventListener("click", exportCSV);
 document.getElementById("csvImportInput").addEventListener("change", e => {
+  if (blockIfSnapshotView()) { e.target.value = ""; return; }
   const file = e.target.files[0];
   if (!file) return;
   if (!confirm(`「${file.name}」を取り込みます。\n同じ名前のメンバーは上書き、新規はそのまま追加されます。続行しますか？`)) {
@@ -2860,7 +2965,6 @@ const historyWrap = document.getElementById("historyWrap");
 const dashboardWrap = document.getElementById("dashboardWrap");
 const vHistoryBtn = document.getElementById("vHistory");
 const vDashboardBtn = document.getElementById("vDashboard");
-const originalSwitchView = switchView;
 switchView = function(view) {
   vChartBtn.classList.toggle("active", view === "chart");
   vListBtn.classList.toggle("active", view === "list");
@@ -3402,8 +3506,8 @@ let isDraftMode = false;
 
 function startDraft() {
   if (isDraftMode) return;
-  // Save the current state to restore later
-  draftSnapshot = JSON.parse(JSON.stringify(captureCurrentState()));
+  // Save the current state to restore later（写真も含めて完全バックアップ）
+  draftSnapshot = JSON.parse(JSON.stringify(captureCurrentState(true)));
   isDraftMode = true;
   document.body.classList.add("draft-mode");
   document.getElementById("draftBanner").classList.add("show");
@@ -3477,6 +3581,7 @@ function exitDraft(save) {
 }
 
 document.getElementById("btnDraft").addEventListener("click", () => {
+  if (blockIfSnapshotView()) return;
   if (isDraftMode) {
     alert("既に未来案モード中です。保存または破棄してください。");
     return;
@@ -3484,6 +3589,14 @@ document.getElementById("btnDraft").addEventListener("click", () => {
   if (!confirm("🔮 未来案の作成を開始します。\n\n現在の組織図をベースに編集できますが、\n「未来案として保存」を押すまで現在の組織図には反映されません。\n\n続行しますか？")) return;
   startDraft();
 });
+// ドラフト中の編集は永続化されないため、リロード/タブ閉じで全損する前に警告する
+window.addEventListener("beforeunload", e => {
+  if (isDraftMode) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
+});
+
 document.getElementById("draftSave").addEventListener("click", () => exitDraft(true));
 document.getElementById("draftDiscard").addEventListener("click", () => {
   if (!confirm("未来案の変更を破棄して元に戻します。よろしいですか？")) return;
